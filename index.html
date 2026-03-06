@@ -279,7 +279,8 @@
             </section>
         </div>
     </div>
-
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script>
         const $ = (id) => document.getElementById(id);
         let selectedFolderFiles = null;
@@ -480,45 +481,57 @@
         }
 
         function downloadPDF() {
-            if (typeof jsPDF === 'undefined') {
-                alert('jsPDF kütüphanesi yüklenmemiş. Sayfayı yenileyip tekrar deneyin.');
-                return;
-            }
-            const meta = getMetaInfo();
-            const content = $("content").value.trim() || "—";
-            const doc = new jsPDF();
-            const pageHeight = doc.internal.pageSize.getHeight();
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const margin = 15;
-            const maxWidth = pageWidth - 2 * margin;
-            let y = margin;
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('jsPDF kütüphanesi yüklenmemiş. Sayfayı yenileyip tekrar deneyin.');
+        return;
+    }
 
-            doc.setFontSize(16);
-            doc.text(meta.title, margin, y);
-            y += 10;
+    const { jsPDF } = window.jspdf;
 
-            doc.setFontSize(11);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Tarih: ${meta.date}`, margin, y);
-            y += 6;
-            doc.text(`Şablon: ${meta.template}`, margin, y);
-            y += 12;
+    const meta = getMetaInfo();
+    const content = $("content").value.trim() || "—";
 
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(11);
-            const lines = doc.splitTextToSize(content, maxWidth);
-            lines.forEach((line) => {
-                if (y > pageHeight - margin) {
-                    doc.addPage();
-                    y = margin;
-                }
-                doc.text(line, margin, y);
-                y += 7;
-            });
+    const doc = new jsPDF({
+        unit: "mm",
+        format: "a4"
+    });
 
-            const fileName = getFileNameWithoutExt() + '_' + nowStamp() + '.pdf';
-            doc.save(fileName);
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    const maxWidth = pageWidth - 2 * margin;
+    let y = margin;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(meta.title, margin, y);
+    y += 10;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Tarih: ${meta.date}`, margin, y);
+    y += 6;
+    doc.text(`Şablon: ${meta.template}`, margin, y);
+    y += 10;
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+
+    const lines = doc.splitTextToSize(content, maxWidth);
+
+    for (const line of lines) {
+        if (y > pageHeight - margin) {
+            doc.addPage();
+            y = margin;
         }
+        doc.text(line, margin, y);
+        y += 6;
+    }
+
+    const fileName = getFileNameWithoutExt() + '_' + nowStamp() + '.pdf';
+    doc.save(fileName);
+}
 
         async function downloadZIP() {
             if (typeof JSZip === 'undefined') {
